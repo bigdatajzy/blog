@@ -225,8 +225,8 @@ social:
 social_icons:
   enable: true
   # Icon Mappings.
-  KeyMapsToSocialItemKey: NameOfTheIconFromFontAwesome
-  GitHub: LinkLabel
+  # KeyMapsToSocialItemKey: NameOfTheIconFromFontAwesome
+  GitHub: http://www.baidu.com
   Twitter: twitter
   Weibo: weibo
 
