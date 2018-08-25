@@ -4,7 +4,7 @@
 # ---------------------------------------------------------------
 
 # Site
-title: 姜仲钰
+title: fitr
 subtitle: 一个程序猿
 description:
 author: 姜仲钰
@@ -215,7 +215,7 @@ font:
 # Value is the target link (E.g. GitHub: https://github.com/iissnan)
 social:
   GitHub:
-  Twitter:
+#  Twitter:
   Weibo:
   Weixin:
 
@@ -229,7 +229,7 @@ social_icons:
   # Icon Mappings.
   # KeyMapsToSocialItemKey: NameOfTheIconFromFontAwesome
   GitHub: github
-  Twitter: twitter
+#  Twitter: twitter
   Weibo: weibo
   Weixin: weixin
 
