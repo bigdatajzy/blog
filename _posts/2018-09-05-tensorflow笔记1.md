@@ -1,10 +1,11 @@
 ---
-title: tensorflow 学习资料整理
+title: tensorflow 学习资料整理（1）
 date: 2018-9-05 8:55:00
 categories:
 - 人工智能/tensorflow
 tags: 人工智能,框架
 ---
+简单整理一下从慕课上面学习的tensorflow的知识点，供大家一起学习讨论。
 
 学习tensorflow之前我们需要先统一一下认知
 ===========
