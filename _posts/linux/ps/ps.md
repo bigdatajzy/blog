@@ -32,5 +32,18 @@ ps [选项参数]
 
 ## 常见用法
 
-ps -ef
+### ps -ef
 
+该请求会显示PID
+
+![ps -ef](img/ps-ef.png)
+
+通常我们会使用管道过滤所有的显示，只关注重要信息。
+
+### ps -ef | grep java
+
+![ps -ef | grep java](img/ps-ef2.png)
+
+### ps -aux | grep java
+
+![ps -aux | grep java](img/ps-ef3.png)
