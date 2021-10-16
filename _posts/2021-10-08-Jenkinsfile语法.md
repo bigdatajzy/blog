@@ -5,9 +5,68 @@ categories:
 - 持续集成/jenkins
 tags: jenkins
 ---
-# Declarative pipeline 语法
-## Declarative 语法树
-### 基础模板
+# Jenkinsfile 语法
+## 框架
+```
+pipeline {
+    # 声明流水线标识
+    agent{
+        # 必须 流水线执行位置
+    }
+    environment{
+        # 可选 设置环境变量
+    }
+    triggers{
+        # 可选 流水线触发器，支持三种触发器cron、pollSCM、upstream
+    }
+    libraries{
+        # 可选 
+    }
+    options{
+        # 可选 用来配置Jenkins应用自认的一些配置项
+    }
+    parameters{
+        # 可选 提供用户在触发pipeline时应提供的参数列表
+    }
+    tools{
+        # 可选 定义部署流程中常用的一些工具
+    }
+    stages{
+        # 必须 有且仅有一个 此关键字用于表示流水线各个步骤的声明
+        stage('1阶段名称'){
+            # 必须 至少存在一个 表示实际构建的阶段
+            agent{
+                # 可选 流水线该节点的执行位置
+            }
+            environment{
+                # 可选 该节点的环境变量
+            }
+            tools{
+                # 可选 该节点需要使用的工具
+            }
+            input{
+                # 可选 使用该指令来提示输入
+            }
+            when{
+                # 可选 根据流水线给定的条件决定是否应该执行
+            }
+            steps{
+                # 必须 有且仅有一个 标识阶段中具体的构建步骤
+            }
+            post{
+                # 可选 定义该阶段执行完成之后的结果
+            }
+        }
+        stage('2阶段名称'){
+
+        }
+        post{
+            # 可选 定义整条流水线执行之后的结果
+        }
+    }
+} 
+```
+## 基础模板
 vscode中安装JenkinsFile Support插件后，输入pipe后将出现一下模板。
 
 ```
