@@ -1,0 +1,831 @@
+# Reactor 教程
+
+Reactor 是一个响应式编程库，用于构建非阻塞应用程序。这个教程将介绍 Reactor 的核心概念和常用方法。
+
+## 目录
+
+- [简介](#简介)
+- [核心类型](#核心类型)
+- [创建流](#创建流)
+- [转换操作](#转换操作)
+- [过滤操作](#过滤操作)
+- [组合操作](#组合操作)
+- [错误处理](#错误处理)
+- [调度器](#调度器)
+- [调试技巧](#调试技巧)
+- [测试](#测试)
+
+## 简介
+
+Reactor 是一个基于 Reactive Streams 规范的 JVM 响应式编程库，主要由 Pivotal 团队开发。它提供了两个响应式类型：
+
+- `Mono<T>`: 表示 0 或 1 个元素的异步序列
+- `Flux<T>`: 表示 0 到 N 个元素的异步序列
+
+## 核心类型
+
+### Mono
+
+`Mono<T>` 是一个发布最多一个元素的发布者，然后终止或发出错误信号。
+
+**主要特点**：
+- 代表单个值或空结果的异步操作
+- 可以表示成功完成（有或没有值）或错误
+
+### Flux
+
+`Flux<T>` 是一个发布 0 到 N 个元素的发布者，可以终止或发出错误信号。
+
+**主要特点**：
+- 代表多个值的异步序列
+- 可以是有限的也可以是无限的
+
+## 创建流
+
+### just
+
+创建一个包含预定义值的发布者。
+
+**用法**：
+```java
+Mono<String> mono = Mono.just("Hello");
+Flux<Integer> flux = Flux.just(1, 2, 3, 4, 5);
+```
+
+**示例**：
+```java
+Mono.just("Hello")
+    .subscribe(System.out::println);
+// 输出: Hello
+
+Flux.just(1, 2, 3)
+    .subscribe(System.out::println);
+// 输出:
+// 1
+// 2
+// 3
+```
+
+### empty
+
+创建一个不发出任何值并立即完成的发布者。
+
+**用法**：
+```java
+Mono<String> emptyMono = Mono.empty();
+Flux<Integer> emptyFlux = Flux.empty();
+```
+
+**示例**：
+```java
+Mono.empty()
+    .subscribe(
+        value -> System.out.println("Value: " + value),
+        error -> System.err.println("Error: " + error),
+        () -> System.out.println("Completed!")
+    );
+// 输出: Completed!
+```
+
+### error
+
+创建一个只发出错误信号的发布者。
+
+**用法**：
+```java
+Mono<String> errorMono = Mono.error(new RuntimeException("Something went wrong"));
+Flux<Integer> errorFlux = Flux.error(new RuntimeException("Something went wrong"));
+```
+
+**示例**：
+```java
+Mono.error(new RuntimeException("Oops!"))
+    .subscribe(
+        value -> System.out.println("Value: " + value),
+        error -> System.err.println("Error: " + error.getMessage()),
+        () -> System.out.println("Completed!")
+    );
+// 输出: Error: Oops!
+```
+
+### fromIterable
+
+从一个 Iterable 创建 Flux。
+
+**用法**：
+```java
+List<String> list = Arrays.asList("A", "B", "C");
+Flux<String> flux = Flux.fromIterable(list);
+```
+
+**示例**：
+```java
+List<String> fruits = Arrays.asList("Apple", "Banana", "Cherry");
+Flux.fromIterable(fruits)
+    .subscribe(System.out::println);
+// 输出:
+// Apple
+// Banana
+// Cherry
+```
+
+### range
+
+创建一个发出指定范围内整数序列的 Flux。
+
+**用法**：
+```java
+Flux<Integer> flux = Flux.range(start, count);
+```
+
+**示例**：
+```java
+Flux.range(5, 3)
+    .subscribe(System.out::println);
+// 输出:
+// 5
+// 6
+// 7
+```
+
+### interval
+
+创建一个以固定延迟发出递增 Long 值的 Flux。
+
+**用法**：
+```java
+Flux<Long> flux = Flux.interval(Duration.ofMillis(100));
+```
+
+**示例**：
+```java
+Flux.interval(Duration.ofSeconds(1))
+    .take(3)
+    .subscribe(System.out::println);
+// 输出 (每秒一个):
+// 0
+// 1
+// 2
+```
+
+### fromArray, fromStream
+
+从数组或流中创建 Flux。
+
+**用法**：
+```java
+String[] array = new String[]{"A", "B", "C"};
+Flux<String> fluxFromArray = Flux.fromArray(array);
+
+Stream<String> stream = Stream.of("A", "B", "C");
+Flux<String> fluxFromStream = Flux.fromStream(stream);
+```
+
+**示例**：
+```java
+Integer[] numbers = {1, 2, 3};
+Flux.fromArray(numbers)
+    .subscribe(System.out::println);
+// 输出:
+// 1
+// 2
+// 3
+
+Flux.fromStream(() -> Stream.of("X", "Y", "Z"))
+    .subscribe(System.out::println);
+// 输出:
+// X
+// Y
+// Z
+```
+
+### generate
+
+通过同步生成器函数创建 Flux。
+
+**用法**：
+```java
+Flux<T> flux = Flux.generate(
+    () -> initialState,
+    (state, sink) -> {
+        sink.next(valueFromState);
+        return newState;
+    }
+);
+```
+
+**示例**：
+```java
+Flux.generate(
+    () -> 0,
+    (state, sink) -> {
+        sink.next("Value " + state);
+        if (state == 5) {
+            sink.complete();
+        }
+        return state + 1;
+    }
+)
+.subscribe(System.out::println);
+// 输出:
+// Value 0
+// Value 1
+// Value 2
+// Value 3
+// Value 4
+// Value 5
+```
+
+### create
+
+通过编程方式创建 Flux，支持多线程和背压。
+
+**用法**：
+```java
+Flux<T> flux = Flux.create(sink -> {
+    // 使用 sink.next(), sink.error(), sink.complete() 触发事件
+});
+```
+
+**示例**：
+```java
+Flux.create(sink -> {
+    for (int i = 0; i < 5; i++) {
+        if (sink.isCancelled()) {
+            return;
+        }
+        sink.next("Value " + i);
+    }
+    sink.complete();
+})
+.subscribe(System.out::println);
+// 输出:
+// Value 0
+// Value 1
+// Value 2
+// Value 3
+// Value 4
+```
+
+## 转换操作
+
+### map
+
+将每个元素应用转换函数。
+
+**用法**：
+```java
+flux.map(value -> transformedValue)
+```
+
+**示例**：
+```java
+Flux.range(1, 3)
+    .map(i -> i * 10)
+    .subscribe(System.out::println);
+// 输出:
+// 10
+// 20
+// 30
+```
+
+### flatMap
+
+将每个元素映射到一个新的发布者，然后将这些发布者的结果合并到一个 Flux 中。
+
+**用法**：
+```java
+flux.flatMap(value -> Publisher<T>)
+```
+
+**示例**：
+```java
+Flux.just("A", "B")
+    .flatMap(letter -> Flux.just(1, 2)
+            .map(digit -> letter + digit))
+    .subscribe(System.out::println);
+// 输出（可能交错）:
+// A1
+// A2
+// B1
+// B2
+```
+
+### concatMap
+
+与 flatMap 类似，但保持顺序。
+
+**用法**：
+```java
+flux.concatMap(value -> Publisher<T>)
+```
+
+**示例**：
+```java
+Flux.just("A", "B")
+    .concatMap(letter -> Flux.just(1, 2)
+            .map(digit -> letter + digit))
+    .subscribe(System.out::println);
+// 输出（按顺序）:
+// A1
+// A2
+// B1
+// B2
+```
+
+### reduce
+
+将所有元素减少为单个值。
+
+**用法**：
+```java
+flux.reduce(initialValue, (acc, element) -> result)
+```
+
+**示例**：
+```java
+Flux.range(1, 5)
+    .reduce(0, (acc, value) -> acc + value)
+    .subscribe(System.out::println);
+// 输出: 15 (1+2+3+4+5)
+```
+
+### collectList
+
+将 Flux 元素收集到一个列表中。
+
+**用法**：
+```java
+flux.collectList()
+```
+
+**示例**：
+```java
+Flux.range(1, 3)
+    .collectList()
+    .subscribe(list -> System.out.println("List: " + list));
+// 输出: List: [1, 2, 3]
+```
+
+### zipWith
+
+将此 Flux 与另一个发布者的元素组合在一起。
+
+**用法**：
+```java
+fluxA.zipWith(fluxB)
+fluxA.zipWith(fluxB, (a, b) -> result)
+```
+
+**示例**：
+```java
+Flux.just("A", "B", "C")
+    .zipWith(Flux.just(1, 2, 3), (letter, digit) -> letter + digit)
+    .subscribe(System.out::println);
+// 输出:
+// A1
+// B2
+// C3
+```
+
+## 过滤操作
+
+### filter
+
+只保留满足指定谓词的元素。
+
+**用法**：
+```java
+flux.filter(element -> condition)
+```
+
+**示例**：
+```java
+Flux.range(1, 10)
+    .filter(i -> i % 2 == 0)
+    .subscribe(System.out::println);
+// 输出:
+// 2
+// 4
+// 6
+// 8
+// 10
+```
+
+### take
+
+只取前 n 个元素。
+
+**用法**：
+```java
+flux.take(n)
+```
+
+**示例**：
+```java
+Flux.range(1, 100)
+    .take(3)
+    .subscribe(System.out::println);
+// 输出:
+// 1
+// 2
+// 3
+```
+
+### skip
+
+跳过前 n 个元素。
+
+**用法**：
+```java
+flux.skip(n)
+```
+
+**示例**：
+```java
+Flux.range(1, 5)
+    .skip(2)
+    .subscribe(System.out::println);
+// 输出:
+// 3
+// 4
+// 5
+```
+
+### distinct
+
+只保留元素流中的不同元素。
+
+**用法**：
+```java
+flux.distinct()
+```
+
+**示例**：
+```java
+Flux.just(1, 1, 2, 2, 3)
+    .distinct()
+    .subscribe(System.out::println);
+// 输出:
+// 1
+// 2
+// 3
+```
+
+### elementAt
+
+获取指定索引的元素。
+
+**用法**：
+```java
+flux.elementAt(index)
+```
+
+**示例**：
+```java
+Flux.just("A", "B", "C")
+    .elementAt(1)
+    .subscribe(System.out::println);
+// 输出: B
+```
+
+## 组合操作
+
+### merge
+
+按元素到达的顺序合并多个发布者（可能交错）。
+
+**用法**：
+```java
+Flux.merge(publisher1, publisher2, ...)
+```
+
+**示例**：
+```java
+Flux<String> flux1 = Flux.just("A", "B").delayElements(Duration.ofMillis(100));
+Flux<String> flux2 = Flux.just("C", "D").delayElements(Duration.ofMillis(75));
+
+Flux.merge(flux1, flux2)
+    .subscribe(System.out::println);
+// 可能的输出（交错）:
+// C
+// A
+// D
+// B
+```
+
+### concat
+
+按顺序合并多个发布者。
+
+**用法**：
+```java
+Flux.concat(publisher1, publisher2, ...)
+```
+
+**示例**：
+```java
+Flux<String> flux1 = Flux.just("A", "B");
+Flux<String> flux2 = Flux.just("C", "D");
+
+Flux.concat(flux1, flux2)
+    .subscribe(System.out::println);
+// 输出:
+// A
+// B
+// C
+// D
+```
+
+### combineLatest
+
+组合多个发布者，每当任何一个发布者发出一个值时，就会发出所有发布者的最新值的组合。
+
+**用法**：
+```java
+Flux.combineLatest(
+    arrays, combinatorFunction
+)
+```
+
+**示例**：
+```java
+Flux<String> flux1 = Flux.just("A", "B").delayElements(Duration.ofMillis(100));
+Flux<String> flux2 = Flux.just("1", "2", "3").delayElements(Duration.ofMillis(75));
+
+Flux.combineLatest(
+    a -> a[0] + a[1],
+    flux1, flux2
+)
+.subscribe(System.out::println);
+// 可能的输出:
+// A1
+// A2
+// A3
+// B3
+```
+
+### zip
+
+组合多个发布者的值，每个发布者按顺序提供一个值。
+
+**用法**：
+```java
+Flux.zip(publisher1, publisher2, combinator)
+```
+
+**示例**：
+```java
+Flux<String> flux1 = Flux.just("A", "B", "C");
+Flux<String> flux2 = Flux.just("1", "2", "3");
+
+Flux.zip(flux1, flux2, (a, b) -> a + b)
+    .subscribe(System.out::println);
+// 输出:
+// A1
+// B2
+// C3
+```
+
+## 错误处理
+
+### onErrorReturn
+
+在发生错误时返回一个默认值。
+
+**用法**：
+```java
+flux.onErrorReturn(defaultValue)
+```
+
+**示例**：
+```java
+Flux.just("1", "2", "Three", "4")
+    .map(Integer::parseInt)
+    .onErrorReturn(0)
+    .subscribe(System.out::println);
+// 输出:
+// 1
+// 2
+// 0
+```
+
+### onErrorResume
+
+在发生错误时切换到另一个发布者。
+
+**用法**：
+```java
+flux.onErrorResume(error -> fallbackPublisher)
+```
+
+**示例**：
+```java
+Flux.just("1", "2", "Three", "4")
+    .map(Integer::parseInt)
+    .onErrorResume(e -> Flux.just(-1, -2))
+    .subscribe(System.out::println);
+// 输出:
+// 1
+// 2
+// -1
+// -2
+```
+
+### retry
+
+在错误时尝试重新订阅上游发布者。
+
+**用法**：
+```java
+flux.retry(times)
+```
+
+**示例**：
+```java
+AtomicInteger counter = new AtomicInteger();
+Flux.defer(() -> {
+    if (counter.getAndIncrement() < 3) {
+        return Flux.error(new RuntimeException("Failing"));
+    } else {
+        return Flux.just("Success");
+    }
+})
+.retry(3)
+.subscribe(System.out::println);
+// 输出: Success
+```
+
+### timeout
+
+如果在指定持续时间内没有收到元素，则触发超时错误。
+
+**用法**：
+```java
+flux.timeout(Duration.ofMillis(timeoutInMillis))
+```
+
+**示例**：
+```java
+Flux.just(1, 2, 3)
+    .delayElements(Duration.ofMillis(300))
+    .timeout(Duration.ofMillis(200))
+    .onErrorReturn(-1)
+    .subscribe(System.out::println);
+// 输出: -1
+```
+
+## 调度器
+
+### publishOn
+
+指定在哪个调度器上进行后续操作。
+
+**用法**：
+```java
+flux.publishOn(scheduler)
+```
+
+**示例**：
+```java
+Flux.range(1, 3)
+    .map(i -> {
+        System.out.println("Map 1 in thread " + Thread.currentThread().getName());
+        return i;
+    })
+    .publishOn(Schedulers.parallel())
+    .map(i -> {
+        System.out.println("Map 2 in thread " + Thread.currentThread().getName());
+        return i;
+    })
+    .subscribe();
+```
+
+### subscribeOn
+
+指定在哪个调度器上启动整个序列。
+
+**用法**：
+```java
+flux.subscribeOn(scheduler)
+```
+
+**示例**：
+```java
+Flux.range(1, 3)
+    .map(i -> {
+        System.out.println("Map in thread " + Thread.currentThread().getName());
+        return i;
+    })
+    .subscribeOn(Schedulers.elastic())
+    .subscribe();
+```
+
+### 常用调度器类型
+
+- **Schedulers.immediate()**: 在当前线程上执行
+- **Schedulers.single()**: 使用单个可重用线程
+- **Schedulers.elastic()**: 使用弹性线程池，适合 I/O 操作
+- **Schedulers.parallel()**: 使用固定大小的线程池，适合计算密集型任务
+- **Schedulers.boundedElastic()**: 有界弹性线程池，适合 I/O 操作，但有资源限制
+
+## 调试技巧
+
+### log
+
+记录序列中的所有事件。
+
+**用法**：
+```java
+flux.log()
+flux.log(category)
+```
+
+**示例**：
+```java
+Flux.range(1, 3)
+    .log("MyFlux")
+    .subscribe();
+// 输出:
+// [MyFlux] onSubscribe([Synchronous Fuseable] FluxRange.RangeSubscription)
+// [MyFlux] request(unbounded)
+// [MyFlux] onNext(1)
+// [MyFlux] onNext(2)
+// [MyFlux] onNext(3)
+// [MyFlux] onComplete()
+```
+
+### checkpoint
+
+为调试目的标记序列中的位置。
+
+**用法**：
+```java
+flux.checkpoint()
+flux.checkpoint(description)
+```
+
+**示例**：
+```java
+Flux.just(1)
+    .map(i -> i / 0) // 将导致错误
+    .checkpoint("divisionOperation")
+    .subscribe(
+        System.out::println,
+        error -> error.printStackTrace()
+    );
+// 错误堆栈跟踪将包含 checkpoint 的描述
+```
+
+## 测试
+
+Reactor 提供了 `StepVerifier` 来测试响应式流。
+
+**基本用法**：
+```java
+StepVerifier.create(flux)
+    .expectNext(value1, value2, ...)
+    .expectComplete()
+    .verify();
+```
+
+**示例**：
+```java
+Flux<String> flux = Flux.just("A", "B", "C");
+
+StepVerifier.create(flux)
+    .expectNext("A")
+    .expectNext("B")
+    .expectNext("C")
+    .expectComplete()
+    .verify();
+```
+
+**测试错误**：
+```java
+Flux<String> flux = Flux.error(new RuntimeException("Error"));
+
+StepVerifier.create(flux)
+    .expectErrorMessage("Error")
+    .verify();
+```
+
+**测试时间相关的发布者**：
+```java
+StepVerifier.withVirtualTime(() -> Flux.interval(Duration.ofSeconds(1)).take(3))
+    .expectSubscription()
+    .expectNoEvent(Duration.ofSeconds(1))
+    .expectNext(0L)
+    .expectNoEvent(Duration.ofSeconds(1))
+    .expectNext(1L)
+    .expectNoEvent(Duration.ofSeconds(1))
+    .expectNext(2L)
+    .expectComplete()
+    .verify();
+```
+
+## 结论
+
+Reactor 是一个功能强大的响应式编程库，它提供了丰富的操作符来处理异步数据流。本教程只涵盖了最常用的操作符和功能，更多高级用法请参考[官方文档](https://projectreactor.io/docs)。
+
+通过正确使用 Reactor，你可以构建高效、可伸缩的非阻塞应用程序，更好地处理背压和资源利用。 
