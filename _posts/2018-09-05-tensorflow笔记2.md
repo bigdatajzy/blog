@@ -1,67 +1,211 @@
 ---
-title: tensorflow 学习资料整理（2）
+title: TensorFlow 2.0 学习笔记（2）：神经网络模型构建
 date: 2018-09-06 10:03:00
 categories:
 - 人工智能/tensorflow
 tags: 人工智能
 ---
-简单整理一下从慕课上面学习的tensorflow的知识点，供大家一起学习讨论。
+本文介绍TensorFlow 2.0中构建神经网络模型的方法，主要围绕Keras API展开。
 
-一、神经网络的参数
-===============
+## Keras：TensorFlow 2.0的核心高层API
 
-神经网络的参数：是指神经元线上的权重w，用变量表示，一般会先随机生成这些参数。生成参数的方法是让w等于tf.Variable,把生成的方法写在括号里。
+TensorFlow 2.0将Keras作为其官方高级API，使模型构建和训练变得简单高效。Keras提供了三种构建模型的方式：
 
-神经网络中常用的生成随机数/数组函数有：
+1. **Sequential API**：最简单的模型构建方式，适用于层按顺序堆叠的简单模型
+2. **Functional API**：更灵活的模型构建方式，支持多输入多输出和复杂的层连接
+3. **Model子类化**：完全自定义的模型构建方式，适合复杂的研究场景
 
-tf.random_normal()        生成正态分布随机数
+## 模型参数初始化
 
-tf.truncated_normal()     生成去掉过大偏离点的正态分布随机数
+在神经网络中，权重初始化是很重要的一步。TensorFlow 2.0提供了多种初始化器：
 
-tf.random_uniform()       生成均匀分布随机数
+```python
+# 常用的初始化器
+from tensorflow.keras import initializers
 
-tf.zeros                  表示生成全0数组
+# 正态分布随机初始化
+initializer = initializers.RandomNormal(mean=0.0, stddev=0.05)
 
-tf.ones                   表示生成全1数组
+# 截断正态分布随机初始化（限制在平均值周围的标准差范围内）
+initializer = initializers.TruncatedNormal(mean=0.0, stddev=0.05)
 
-tf.fill                   表示生成全定值数组
+# 均匀分布随机初始化
+initializer = initializers.RandomUniform(minval=-0.05, maxval=0.05)
 
-tf.constant               表示生成直接给定的数组
+# 常量初始化
+initializer = initializers.Constant(value=0.2)
 
-举例
+# 全零初始化
+initializer = initializers.Zeros()
 
-1⃣️ w=tf.Variable(tf.random_normal([2.3],stddev=2,mean=0,seed=1)),表示生成正态分布随机数，形状两行三列，标准差是2，均值是0，随机种子是1。
+# 全一初始化
+initializer = initializers.Ones()
 
-2⃣️ w=tf.Variable(tf.Truncated_normal([2,3],stddev=2,mean=0,seed=1)),表示去掉偏离过大的正态分布，也就是如果随机出来的数值偏离平均值超过两个标准差，这个数据将重新生成。
+# He初始化（适用于ReLU激活函数）
+initializer = initializers.HeNormal()
 
-3⃣️ w=random_uniform(shape=7,minval=0,maxval=1,dtype=tf.int32,seed=1),表示从一个均匀分布[minval.maxval)中随机采样，注意定义域是左闭右开，即包含minval，不包含maxval。
+# Xavier/Glorot初始化（适用于tanh激活函数）
+initializer = initializers.GlorotNormal()
+```
 
-4⃣️ 除了生成随机数，还可以生成常量。tf.zeros([3,2],int32)表示生成[[1,1],[1,1],[1,1]];tf.fill([3,2],6)表示生成[[6,6],[6,6],[6,6]];tf.constant([3,2,1])表示生成[3,2,1]。
+在创建层时使用初始化器：
 
-注意：1⃣️随机种子如果去掉的话每次生成的随机数将不一致。
-2⃣️如果没有特殊要求标准差、均值、随机种子是可以不写的。
+```python
+import tensorflow as tf
 
-二、神经网络的搭建
-===============
+# 在Dense层中使用初始化器
+layer = tf.keras.layers.Dense(
+    units=10,
+    kernel_initializer=tf.keras.initializers.HeNormal(),
+    bias_initializer=tf.keras.initializers.Zeros()
+)
+```
 
-当我们知道张量、计算图、会话和参数后，我们可以讨论神经网络的实现过程了。
+## Sequential API：构建简单模型
 
-神经网络的实现过程：
+使用Sequential API构建一个简单的多层感知机：
 
-1、准备数据集，提取特征，作为输入喂给神经网络（Neural Network，NN）
+```python
+import tensorflow as tf
+from tensorflow.keras import layers, models
 
-2、搭建NN结构，从输入到输出（先搭建计算图，再用会话执行）
-（NN前向传播算法==>计算输出）
+# 构建模型
+model = models.Sequential([
+    layers.Dense(64, activation='relu', input_shape=(784,)),
+    layers.Dropout(0.2),
+    layers.Dense(64, activation='relu'),
+    layers.Dropout(0.2),
+    layers.Dense(10, activation='softmax')
+])
 
-3、大量特征数据喂给NN，迭代优化NN参数
-（NN反向传播算法==>优化参数训练模型）
+# 编译模型
+model.compile(
+    optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
+    loss='sparse_categorical_crossentropy',
+    metrics=['accuracy']
+)
 
-4、使用训练好的模型预测和分类
+# 查看模型结构
+model.summary()
+```
 
-由此可见，基于神经网络的机器学习主要分为两个过程，即训练过程和使用过程。训练过程是第一步、第二步、第三步的循环迭代，使用过程是第四步，一旦参数优化完成就可以固定这些参数，实现特定的应用了。
+## Functional API：构建复杂模型
 
-很多实际应用中，我们会先使用现有的成熟的网络结构，喂入新的数据，训练相应模型，判断是否能对喂入的从未见过的新数据作出正确响应，在适当更改网络结构，反复迭代，让机器自动训练参数找出最优结构和参数，以固定专用模型。
+使用Functional API构建多输入模型：
 
+```python
+import tensorflow as tf
+from tensorflow.keras import layers, models
 
+# 定义输入
+image_input = tf.keras.Input(shape=(28, 28, 1), name='image_input')
+metadata_input = tf.keras.Input(shape=(10,), name='metadata')
 
->文章来源于tensorflow笔记
+# 图像处理分支
+x = layers.Conv2D(32, (3, 3), activation='relu')(image_input)
+x = layers.MaxPooling2D((2, 2))(x)
+x = layers.Conv2D(64, (3, 3), activation='relu')(x)
+x = layers.MaxPooling2D((2, 2))(x)
+x = layers.Flatten()(x)
+x = layers.Dense(64, activation='relu')(x)
+
+# 元数据处理分支
+y = layers.Dense(32, activation='relu')(metadata_input)
+
+# 合并两个分支
+combined = layers.concatenate([x, y])
+
+# 输出层
+output = layers.Dense(10, activation='softmax')(combined)
+
+# 创建包含两个输入的模型
+model = models.Model(
+    inputs=[image_input, metadata_input],
+    outputs=output
+)
+
+# 编译模型
+model.compile(
+    optimizer='adam',
+    loss='sparse_categorical_crossentropy',
+    metrics=['accuracy']
+)
+
+# 查看模型结构
+model.summary()
+```
+
+## 模型子类化：完全自定义模型
+
+通过继承`tf.keras.Model`类创建自定义模型：
+
+```python
+import tensorflow as tf
+
+class CustomModel(tf.keras.Model):
+    def __init__(self):
+        super(CustomModel, self).__init__()
+        
+        # 定义层
+        self.conv1 = tf.keras.layers.Conv2D(32, (3, 3), activation='relu')
+        self.flatten = tf.keras.layers.Flatten()
+        self.dense1 = tf.keras.layers.Dense(128, activation='relu')
+        self.dense2 = tf.keras.layers.Dense(10, activation='softmax')
+        
+    def call(self, inputs, training=False):
+        # 定义前向传播
+        x = self.conv1(inputs)
+        x = self.flatten(x)
+        x = self.dense1(x)
+        return self.dense2(x)
+    
+# 创建模型实例
+model = CustomModel()
+
+# 编译模型
+model.compile(
+    optimizer='adam',
+    loss='sparse_categorical_crossentropy',
+    metrics=['accuracy']
+)
+
+# 需要先构建模型结构才能查看summary
+model.build(input_shape=(None, 28, 28, 1))
+model.summary()
+```
+
+## 保存和加载模型
+
+TensorFlow 2.0提供了简便的模型保存和加载机制：
+
+```python
+# 保存整个模型（包括权重、配置和优化器状态）
+model.save('my_model.h5')
+
+# 仅保存权重
+model.save_weights('model_weights.h5')
+
+# 加载整个模型
+loaded_model = tf.keras.models.load_model('my_model.h5')
+
+# 加载权重（需要先构建相同结构的模型）
+model.load_weights('model_weights.h5')
+```
+
+## SavedModel 格式
+
+对于生产环境，建议使用SavedModel格式保存模型：
+
+```python
+# 保存为SavedModel格式
+model.save('saved_model_dir', save_format='tf')
+
+# 加载SavedModel格式的模型
+loaded_model = tf.keras.models.load_model('saved_model_dir')
+```
+
+SavedModel格式的优势在于可以跨平台部署，支持TensorFlow Serving、TensorFlow Lite等生产环境。
+
+在下一篇笔记中，我们将介绍TensorFlow 2.0中的训练与优化技术。
+
+> 本文是TensorFlow 2.0学习笔记系列的第二篇，专注于神经网络模型构建方法。

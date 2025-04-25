@@ -1,117 +1,152 @@
 ---
-title: tensorflow 学习资料整理（1）
+title: TensorFlow 2.0 学习笔记（1）：基础概念
 date: 2018-9-05 8:55:00
 categories:
 - 人工智能/tensorflow
 tags: 人工智能,框架
 ---
-简单整理一下从慕课上面学习的tensorflow的知识点，供大家一起学习讨论。
+本文整理了TensorFlow 2.0的基础知识，帮助大家快速入门这一强大的深度学习框架。
 
-学习tensorflow之前我们需要先统一一下认知
-===========
+## TensorFlow 2.0 简介
 
-一、基本概念
-===========
+TensorFlow 2.0是谷歌开发的开源机器学习框架，相比TensorFlow 1.x，其使用更加简洁直观，主要特点包括：
 
-基于Tensorflow的NN：用张量表示数据，用计算图搭建神经网络，用会话执行计算图，优化线上的权重（参数），得到模型。
-===========
+1. 以Keras为核心的高层API
+2. 即时执行模式（Eager Execution）
+3. 更简洁的模型构建方式
+4. 改进的分布式训练支持
 
-张量：张量就是作为数组（列表），用“阶”表示张量的维度。
-===========
+## 基本概念
 
-0阶张量称作标量，表示一个单独的数；
+### 张量（Tensor）
 
-举例 S=123
+张量是TensorFlow中的核心数据结构，表示多维数组。
 
-1阶张量称作向量，表示一个一维数组；
+- **0阶张量**：标量，表示单个数值
+  ```python
+  scalar = tf.constant(123)
+  ```
 
-举例 V=[1，2，3]
+- **1阶张量**：向量，表示一维数组
+  ```python
+  vector = tf.constant([1, 2, 3])
+  ```
 
-2阶张量称作矩阵，表示一个二维数组，它可以有i 行j列个元素，每个元素可以用行号和列号共同索引到；
+- **2阶张量**：矩阵，表示二维数组
+  ```python
+  matrix = tf.constant([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+  ```
 
-举例 m=[[1,2,3],[4,5,6],[7,8,9]]
+- **高阶张量**：表示三维或更高维度的数组
+  ```python
+  tensor_3d = tf.constant([[[1, 2], [3, 4]], [[5, 6], [7, 8]]])
+  ```
 
-判断张量是几阶的，就通过张量右边的方括号数，0个是0阶，n个是n阶，张量可以表示0阶到n阶数组（列表）；
+判断张量的阶数，就是看其维度的数量。TensorFlow 2.0中，可以通过`tf.rank()`函数或`.shape`属性查看张量的维度信息。
 
-举例 t=[[[...]]]为3阶。
+### 数据类型
 
-数据类型：Tenserflow的数据类型有tf.float32、tf.int32等。
-============
+TensorFlow支持多种数据类型，常见的有：
+- `tf.float32`：32位浮点数
+- `tf.float64`：64位浮点数
+- `tf.int32`：32位整数
+- `tf.int64`：64位整数
+- `tf.bool`：布尔类型
+- `tf.string`：字符串类型
 
-举例
+### 即时执行模式（Eager Execution）
 
-我们实现tensorflow的加法：
+TensorFlow 2.0默认启用即时执行模式，可以立即计算操作结果，无需构建计算图和创建会话。这使得调试更加容易，代码更加直观。
 
-import tensorflow as tf    //引入模块
+```python
+import tensorflow as tf
 
-a = tf.constant([1.0,2.0]) //定义一个张量等于[1.0,2.0]
+# 直接创建和操作张量
+a = tf.constant([1.0, 2.0])
+b = tf.constant([3.0, 4.0])
+result = a + b
 
-b = tf.constant([3.0,4.0]) //定义一个张量等于[3.0,4.0]
+# 直接打印结果，无需会话
+print(result)  # tf.Tensor([4. 6.], shape=(2,), dtype=float32)
+```
 
-result = a + b             //实现a加b的加法
+### 自动微分
 
-print result               //打印出结果
+TensorFlow 2.0内置自动微分系统，通过`tf.GradientTape`记录操作，用于自动计算梯度。
 
-可以打印出这样一句话：Tensor("add:0",shape=(2, ),dtype=float32),意思为result是一名称为add：0的张量，shape=（2，） 表示一维数组长度为2，dtype=float32表示数据类型为浮点型。
+```python
+import tensorflow as tf
 
-计算图（Graph）：搭建神经网络的计算过程，只承载一个或多个计算节点的一张图，只搭建网络不运算。
-=============
-举例
+# 创建变量
+x = tf.Variable(3.0)
 
-神经网络的基本模型是神经元，神经元的基本模型就是数学中的乘法、加法运算。我们搭建的层数为2两个子节点的计算图，x1、x2表示输入，w1、w2分别是x1到y和x2到y的权重，y=x1*w1+x2*w2.
+# 使用GradientTape记录操作以计算梯度
+with tf.GradientTape() as tape:
+    y = x * x
 
-实现我们上述的计算图：
+# 计算dy/dx
+dy_dx = tape.gradient(y, x)
+print(dy_dx)  # tf.Tensor(6.0, shape=(), dtype=float32)
+```
 
-import tensorflow as tf      #引入模块
+### 变量（Variable）
 
-x = tf.constant([[1.0,2.0]]) #定义一个2阶张量等于[[1.0,2.0]]
+变量用于存储模型的参数，可以在训练过程中被更新。
 
-w = tf.constant([3.0],[4.0]) #定义一个2阶张量等于[[3.0],[4.0]]
+```python
+# 创建变量
+weights = tf.Variable(tf.random.normal([3, 2]), name='weights')
+bias = tf.Variable(tf.zeros([2]), name='bias')
+```
 
-y = tf.matmul(x,w)           #实现xw矩阵乘法
+## 简单示例：线性回归
 
-print y                      #打印出结果
+下面是一个使用TensorFlow 2.0实现简单线性回归的例子：
 
-可以打印出这样一句话：Tensor（“matmul：0”，shape（1，1），dtype=float32），从这里我们
-可以看出，print的结果显示y是一个张量，只搭建承载计算过程的计算图，并没有运算，如果我们想得到运算结果就要用到“会话Session（）”了。
+```python
+import tensorflow as tf
+import numpy as np
 
-会话（Session）：执行计算图中的结点运算。
-=============
+# 准备数据
+X = np.array([-1.0, 0.0, 1.0, 2.0, 3.0, 4.0], dtype=np.float32)
+y = np.array([-3.0, -1.0, 1.0, 3.0, 5.0, 7.0], dtype=np.float32)
 
-我们用with结构实现，语法如下：
+# 创建模型参数
+W = tf.Variable(0.0, name="weight")
+b = tf.Variable(0.0, name="bias")
 
-with tf.Session() as sess:
+# 定义模型
+def linear_model(x):
+    return W * x + b
 
-  print sess.run(y)
+# 定义损失函数
+def loss_fn(y_pred, y_true):
+    return tf.reduce_mean(tf.square(y_pred - y_true))
 
-举例
+# 定义优化器
+optimizer = tf.keras.optimizers.SGD(learning_rate=0.01)
 
-对于刚刚所述的计算图，我们执行Session（）会话可得到矩阵相乘结果：
+# 训练模型
+for epoch in range(100):
+    # 使用GradientTape跟踪梯度
+    with tf.GradientTape() as tape:
+        predictions = linear_model(X)
+        loss = loss_fn(predictions, y)
+    
+    # 计算梯度
+    gradients = tape.gradient(loss, [W, b])
+    
+    # 更新参数
+    optimizer.apply_gradients(zip(gradients, [W, b]))
+    
+    if epoch % 10 == 0:
+        print(f"Epoch {epoch}, Loss: {loss.numpy()}, W: {W.numpy()}, b: {b.numpy()}")
 
-import tensorflow as tf        #引入模块
+# 测试模型
+print(f"Final model: y = {W.numpy()}x + {b.numpy()}")
+print(f"Prediction for x=5.0: {linear_model(5.0).numpy()}")
+```
 
-x = tf.constant([[1.0,2.0]])   #定义一个2阶张量等于[[1.0,2.0]]
+在TensorFlow 2.0中，我们不再需要创建计算图和会话，代码更加简洁直观，更符合Python的编程习惯。这是TensorFlow 2.0相比1.x版本的一个重大改进。
 
-w = tf.constant([[3.0],[4.0]]) #定义一个2阶张量等于[[3.0],[4.0]]
-
-y = tf.matmul(x,w)             #实现xw矩阵乘法
-
-print y                        #打印出结果
-
-with tf.Session() as sess:
-
-  print sess.run(y)            #执行会话并打印出执行后的结果
-
-可以打印出这样的结果：
-
-Tensor（“matmul:0”,shape(1,1),dtype=float32）
-
-[[11.]]
-
-我们可以看到，运行Session（）会话前只打印出y是个张量的提示，运行Session（）会话后打印出
-了y的结果1.0*3.0+2.0*4.0 = 11.0.
-
-
-
-
->文章来源于tensorflow笔记
+> 本文是TensorFlow 2.0学习笔记系列的第一篇，后续将介绍更多高级特性和实用技巧。
