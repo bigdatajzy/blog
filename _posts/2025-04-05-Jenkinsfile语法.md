@@ -1,6 +1,6 @@
 ---
 title: Jenkinsfile语法
-date: 2021-10-08 10:10:00 UTC
+date: 2025-04-05 10:10:00 UTC
 categories:
 - 持续集成/jenkins
 tags: jenkins

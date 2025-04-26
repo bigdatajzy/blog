@@ -1,6 +1,6 @@
 ---
 title: TensorFlow 2.0 学习笔记（2）：神经网络模型构建
-date: 2018-09-06 10:03:00
+date: 2025-04-02 10:03:00
 categories:
 - 人工智能/tensorflow
 tags: 人工智能

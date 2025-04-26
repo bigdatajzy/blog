@@ -1,6 +1,6 @@
 ---
 title: TensorFlow 2.0 学习笔记（3）：模型训练与优化
-date: 2018-10-03 10:00:00
+date: 2025-04-03 10:00:00
 categories:
 - 人工智能/tensorflow
 tags: 人工智能

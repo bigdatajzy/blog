@@ -1,6 +1,6 @@
 ---
 title: TensorFlow 2.0 学习笔记（1）：基础概念
-date: 2018-9-05 8:55:00
+date: 2025-04-01 8:55:00
 categories:
 - 人工智能/tensorflow
 tags: 人工智能,框架

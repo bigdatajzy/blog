@@ -1,6 +1,6 @@
 ---
 title: TensorFlow 2.0 学习笔记（4）：高级应用与部署
-date: 2023-10-15 09:30:00
+date: 2025-04-04 09:30:00
 categories:
 - 人工智能/tensorflow
 tags: 人工智能,深度学习
